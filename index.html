@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Matcha Loyalty Card</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+  body {
+    margin: 0;
+    font-family: 'Playfair Display', serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: transparent;
+    overflow: hidden;
+  }
+
+  .leaf {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #b7e4c7;
+    border-radius: 50% 0;
+    opacity: 0.35;
+    animation: float 10s linear infinite;
+  }
+
+  @keyframes float {
+    0% { transform: translateY(100vh) rotate(0deg); }
+    100% { transform: translateY(-10vh) rotate(360deg); }
+  }
+
+  .card {
+    padding: 25px;
+    border-radius: 20px;
+    background: #f6fbf7;
+    box-shadow: 0 10px 30px rgba(120,160,130,0.2);
+    text-align: center;
+    width: 280px;
+    border: 2px dashed #cfe8d6;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("https://www.transparenttextures.com/patterns/paper-1.png");
+    opacity: 0.25;
+    pointer-events: none;
+  }
+
+  input, textarea {
+    border: none;
+    background: transparent;
+    text-align: center;
+    outline: none;
+    width: 100%;
+    position: relative;
+    font-family: inherit;
+  }
+
+  input {
+    font-size: 18px;
+    font-weight: 600;
+    color: #5f7f68;
+  }
+
+  textarea {
+    font-size: 12px;
+    color: #7a9a84;
+    resize: none;
+    margin-top: 5px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin: 18px 0;
+  }
+
+  .leaf-dot {
+    width: 20px;
+    height: 20px;
+    background: #e6f4ea;
+    border-radius: 50% 0;
+    transform: rotate(35deg);
+    transition: all 0.2s ease;
+  }
+
+  .filled {
+    background: #6ea97a;
+    transform: rotate(35deg) scale(var(--scale));
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.2),
+                inset 0 -1px 1px rgba(255,255,255,0.25);
+  }
+
+  .filled::after {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    background: rgba(255,255,255,0.08);
+    opacity: var(--ink);
+  }
+
+  button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 10px;
+    background: #a8d5ba;
+    color: #2f4f3a;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .count {
+    font-size: 12px;
+    color: #6f8f78;
+  }
+
+  .reward {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.85);
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+  }
+
+  .reward.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+</style>
+</head>
+
+<body>
+
+<script>
+  for (let i = 0; i < 15; i++) {
+    let leaf = document.createElement("div");
+    leaf.className = "leaf";
+    leaf.style.left = Math.random() * 100 + "vw";
+    leaf.style.animationDuration = (8 + Math.random() * 6) + "s";
+    leaf.style.opacity = Math.random();
+    document.body.appendChild(leaf);
+  }
+</script>
+
+<div class="card">
+  <input id="habitName" placeholder="matcha habit ✿">
+  <textarea id="rewardText" placeholder="your reward… (buy a matcha 🍵)"></textarea>
+
+  <div class="grid" id="grid"></div>
+  <div class="count" id="count"></div>
+  <button onclick="addPunch()">Punch 🍃</button>
+
+  <div class="reward" id="rewardBox"></div>
+</div>
+
+<script>
+  const goal = 25;
+  const key = "matchaPunch25";
+  const nameKey = "habitName25";
+  const rewardKey = "rewardText25";
+  const styleKey = "stampStyles25";
+
+  let punches = localStorage.getItem(key)
+    ? parseInt(localStorage.getItem(key))
+    : 0;
+
+  let styles = JSON.parse(localStorage.getItem(styleKey));
+
+  if (!styles || styles.length !== goal) {
+    styles = [];
+    for (let i = 0; i < goal; i++) {
+      styles.push({
+        scale: 0.95 + Math.random() * 0.15,
+        ink: Math.random() * 0.4
+      });
+    }
+    localStorage.setItem(styleKey, JSON.stringify(styles));
+  }
+
+  const grid = document.getElementById("grid");
+  const count = document.getElementById("count");
+  const rewardBox = document.getElementById("rewardBox");
+
+  const habitInput = document.getElementById("habitName");
+  const rewardInput = document.getElementById("rewardText");
+
+  habitInput.value = localStorage.getItem(nameKey) || "";
+  rewardInput.value = localStorage.getItem(rewardKey) || "";
+
+  habitInput.oninput = () => localStorage.setItem(nameKey, habitInput.value);
+  rewardInput.oninput = () => localStorage.setItem(rewardKey, rewardInput.value);
+
+  function render() {
+    grid.innerHTML = "";
+
+    for (let i = 0; i < goal; i++) {
+      let dot = document.createElement("div");
+      dot.classList.add("leaf-dot");
+
+      if (i < punches) {
+        dot.classList.add("filled");
+        dot.style.setProperty("--scale", styles[i].scale);
+        dot.style.setProperty("--ink", styles[i].ink);
+      }
+
+      grid.appendChild(dot);
+    }
+
+    count.innerText = punches + " / " + goal;
+  }
+
+  function addPunch() {
+    if (punches < goal) {
+      punches++;
+
+      setTimeout(() => {
+        let dots = document.querySelectorAll(".leaf-dot");
+        dots[punches - 1].style.transform = "rotate(35deg) scale(0.8)";
+        setTimeout(() => {
+          dots[punches - 1].style.transform = "rotate(35deg)";
+        }, 120);
+      }, 10);
+
+      if (punches === goal) {
+        rewardBox.innerHTML =
+          "<h4>reward unlocked ✨</h4><p>" +
+          (rewardInput.value || "treat yourself 🍵") +
+          "</p>";
+
+        setTimeout(() => rewardBox.classList.add("show"), 300);
+        setTimeout(() => rewardBox.classList.remove("show"), 3000);
+      }
+
+    } else {
+      punches = 0;
+    }
+
+    localStorage.setItem(key, punches);
+    render();
+  }
+
+  render();
+</script>
+
+</body>
+</html>
